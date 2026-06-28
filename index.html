@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACA Tax Kahoot Quiz</title>
+<style>
+:root { --bg1:#27187e; --bg2:#758bfd; --card:#ffffff; --text:#111827; --red:#e21b3c; --blue:#1368ce; --yellow:#d89e00; --green:#26890c; }
+* { box-sizing:border-box; }
+body { margin:0; min-height:100vh; font-family:Arial, sans-serif; background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:white; }
+header { text-align:center; padding:18px 12px; }
+h1 { margin:0; font-size:30px; }
+.wrap { max-width:950px; margin:0 auto; padding:14px; }
+.panel { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.25); border-radius:20px; padding:16px; backdrop-filter: blur(8px); }
+.topbar { display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:12px; }
+select, button { border:0; border-radius:12px; padding:12px 14px; font-size:16px; font-weight:bold; }
+select { background:white; color:#111827; max-width:100%; }
+button { cursor:pointer; background:#111827; color:white; }
+button.light { background:white; color:#111827; }
+.scorebox { display:flex; gap:10px; flex-wrap:wrap; }
+.pill { background:white; color:#111827; padding:10px 12px; border-radius:999px; font-weight:bold; }
+.question-card { background:white; color:var(--text); border-radius:22px; padding:24px; min-height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+.topic { color:#6b7280; font-size:14px; text-transform:uppercase; letter-spacing:.08em; font-weight:bold; }
+.question { font-size:30px; line-height:1.25; margin-top:12px; font-weight:800; }
+.answers { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px; }
+.answer { min-height:105px; color:white; border-radius:18px; display:flex; align-items:center; justify-content:center; padding:16px; font-size:20px; font-weight:800; text-align:center; border:4px solid rgba(255,255,255,.22); box-shadow:0 6px 14px rgba(0,0,0,.18); }
+.answer:nth-child(1) { background:var(--red); }
+.answer:nth-child(2) { background:var(--blue); }
+.answer:nth-child(3) { background:var(--yellow); }
+.answer:nth-child(4) { background:var(--green); }
+.answer.correct { outline:6px solid #8cff66; transform:scale(1.02); }
+.answer.wrong { opacity:.35; filter:grayscale(.3); }
+.feedback { margin-top:16px; background:white; color:#111827; border-radius:18px; padding:16px; display:none; }
+.feedback h2 { margin:0 0 8px; }
+.nextrow { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.start { background:white; color:#111827; border-radius:22px; padding:24px; text-align:center; }
+.start h2 { margin-top:0; }
+.modegrid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:14px; }
+.modegrid button { min-height:70px; font-size:17px; }
+.result { display:none; background:white; color:#111827; border-radius:22px; padding:24px; text-align:center; }
+.progressbar { background:rgba(255,255,255,.25); height:14px; border-radius:99px; overflow:hidden; margin:12px 0; }
+.progressbar div { background:white; height:100%; width:0%; transition:.25s; }
+.small { font-size:14px; opacity:.9; }
+@media(max-width:700px){ .answers { grid-template-columns:1fr; } .question { font-size:24px; } .answer { min-height:82px; font-size:18px; } .modegrid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ACA Tax Kahoot Quiz</h1>
+  <div class="small">Objectives, Types of Tax & Ethics</div>
+</header>
+<div class="wrap">
+  <div id="start" class="start">
+    <h2>Pick a mode</h2>
+    <p>No typing. Just tap the answer. Wrong answers show the explanation straight away.</p>
+    <select id="topicSelect"></select>
+    <div class="modegrid">
+      <button onclick="startQuiz('all')">Full Quiz</button>
+      <button onclick="startQuiz('quick')">Quick 10</button>
+      <button onclick="startQuiz('weak')">Weak Cards</button>
+      <button onclick="resetStats()">Reset Stats</button>
+    </div>
+  </div>
+
+  <div id="quiz" class="panel" style="display:none;">
+    <div class="topbar">
+      <button class="light" onclick="home()">Home</button>
+      <div class="scorebox">
+        <div class="pill" id="count">1/10</div>
+        <div class="pill" id="score">Score: 0</div>
+        <div class="pill" id="streak">Streak: 0</div>
+      </div>
+    </div>
+    <div class="progressbar"><div id="bar"></div></div>
+    <div class="question-card">
+      <div class="topic" id="topic"></div>
+      <div class="question" id="question"></div>
+    </div>
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback">
+      <h2 id="fbTitle"></h2>
+      <div id="fbText"></div>
+      <div class="nextrow">
+        <button onclick="nextQuestion()">Next</button>
+        <button class="light" onclick="home()">Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result" class="result">
+    <h2>Quiz complete</h2>
+    <p id="finalScore"></p>
+    <p id="advice"></p>
+    <div class="nextrow">
+      <button onclick="startQuiz('quick')">Do another Quick 10</button>
+      <button onclick="startQuiz('weak')">Drill weak cards</button>
+      <button class="light" onclick="home()">Home</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const allQuestions = [{"topic": "Tax principles", "q": "What does the efficiency principle mean?", "choices": ["The cost of collecting tax should be low compared with the tax raised", "Tax should always be charged at the same rate", "Tax should only apply to companies", "Tax should be paid only when cash is received"], "answer": 0, "explain": "Efficiency means the tax should not be expensive or difficult to collect compared with the tax raised."}, {"topic": "Tax principles", "q": "What does the ability to pay principle mean?", "choices": ["Tax should be based on how easy it is to collect", "Tax should reflect the taxpayer’s capacity to pay", "Tax should only apply to high earners", "Tax should be paid quarterly"], "answer": 1, "explain": "Ability to pay means the tax burden should reflect the taxpayer’s financial capacity."}, {"topic": "Types of tax", "q": "VAT is what type of tax?", "choices": ["Direct tax", "Indirect tax", "Capital tax", "Employment tax"], "answer": 1, "explain": "VAT is an indirect tax because it is collected by businesses but borne by consumers."}, {"topic": "Types of tax", "q": "Which one is a direct tax?", "choices": ["VAT", "Customs duty", "Income tax", "Insurance premium tax"], "answer": 2, "explain": "Income tax is a direct tax because the taxpayer pays HMRC directly."}, {"topic": "HMRC enquiries", "q": "What is a notice of enquiry?", "choices": ["HMRC checking a return that has been submitted", "HMRC estimating tax because no return was filed", "HMRC discovering missing tax after the enquiry window", "A taxpayer appealing to tribunal"], "answer": 0, "explain": "A notice of enquiry means HMRC is opening an enquiry into a submitted tax return."}, {"topic": "HMRC enquiries", "q": "Can a taxpayer appeal against HMRC opening an enquiry?", "choices": ["Yes, always", "Yes, but only within 30 days", "No", "Only for VAT"], "answer": 2, "explain": "There is no appeal against HMRC opening an enquiry if it is within the proper time limit."}, {"topic": "HMRC enquiries", "q": "Income tax return filed late. How is the enquiry deadline calculated?", "choices": ["Actual filing date + 30 days", "Actual filing date + 1 year, then next quarter day", "Next quarter day after actual filing, then + 1 year", "Three years from the filing date"], "answer": 1, "explain": "Income tax late return: actual filing + 1 year, then the next quarter day."}, {"topic": "HMRC enquiries", "q": "Corporation tax return filed late. How is the enquiry deadline calculated?", "choices": ["Actual filing + 1 year, then next quarter day", "Next quarter day after actual filing, then + 1 year", "Three years from the normal filing date", "30 days after actual filing"], "answer": 1, "explain": "Corporation tax late return: go to the next quarter day after actual filing, then add 12 months."}, {"topic": "HMRC enquiries", "q": "What are the quarter days used in these rules?", "choices": ["31 Mar, 30 Jun, 30 Sep, 31 Dec", "5 Apr, 5 Jul, 5 Oct, 5 Jan", "31 Jan, 30 Apr, 31 Jul, 31 Oct", "1 Jan, 1 Apr, 1 Jul, 1 Oct"], "answer": 2, "explain": "The quarter days are 31 January, 30 April, 31 July and 31 October."}, {"topic": "Determinations", "q": "When does HMRC use a determination?", "choices": ["When no return has been filed", "When a return has been filed but tax was understated", "When a taxpayer appeals", "When HMRC wants to inspect premises"], "answer": 0, "explain": "Determination = no return filed, so HMRC estimates the tax due."}, {"topic": "Determinations", "q": "How long does HMRC have to issue a determination?", "choices": ["30 days", "12 months from actual filing", "3 years from the normal filing date", "20 years from the tax year"], "answer": 2, "explain": "HMRC must issue a determination within 3 years of the normal filing date."}, {"topic": "Determinations", "q": "How is a determination usually replaced?", "choices": ["By appealing within 30 days", "By filing the missing tax return", "By asking for internal review", "By paying a fixed penalty"], "answer": 1, "explain": "The taxpayer normally files the missing return, which replaces the determination."}, {"topic": "Discovery assessments", "q": "What is a discovery assessment?", "choices": ["No return filed, so HMRC estimates tax", "HMRC checks a return within the enquiry window", "Return filed, but HMRC later discovers missing tax", "A taxpayer asks for tax to be postponed"], "answer": 2, "explain": "Discovery assessment = return filed, but HMRC later discovers tax has been underpaid."}, {"topic": "Discovery assessments", "q": "What time limits apply to discovery assessments?", "choices": ["Use the 4 / 6 / 20 year limits in the tax tables", "Always 30 days", "Always 12 months", "Only 3 years from filing date"], "answer": 0, "explain": "Use the tax tables: 4 / 6 / 20 years depending on behaviour."}, {"topic": "Appeals", "q": "How long does a taxpayer normally have to appeal an HMRC decision?", "choices": ["7 days", "14 days", "30 days", "A calendar month"], "answer": 2, "explain": "Appeal deadline is 30 days. Be careful: ‘calendar month’ is a trap."}, {"topic": "Appeals", "q": "An appeal against a discovery assessment must be made within a calendar month. True or false?", "choices": ["True", "False"], "answer": 1, "explain": "False. The correct wording is within 30 days, not a calendar month."}, {"topic": "Appeals", "q": "Must a taxpayer apply for HMRC internal review before First-tier Tribunal?", "choices": ["Yes", "No"], "answer": 1, "explain": "No. Internal review is optional; the taxpayer can go to tribunal."}, {"topic": "Appeals", "q": "Can disputed tax sometimes be postponed during an appeal?", "choices": ["Yes", "No"], "answer": 0, "explain": "Yes, the taxpayer can apply to postpone the disputed tax."}, {"topic": "Information powers", "q": "Can a taxpayer usually appeal against an information notice?", "choices": ["Yes", "No"], "answer": 0, "explain": "Information notice = usually appeal possible."}, {"topic": "Information powers", "q": "Can a taxpayer appeal against an inspection notice?", "choices": ["Yes", "No"], "answer": 1, "explain": "Inspection notice = no right of appeal."}, {"topic": "Debt recovery", "q": "Minimum debt before HMRC can recover directly from bank accounts?", "choices": ["£500", "£1,000", "£2,500", "£5,000"], "answer": 1, "explain": "Debt must be at least £1,000."}, {"topic": "Debt recovery", "q": "Minimum amount taxpayer must be left with after direct recovery?", "choices": ["£1,000", "£2,500", "£5,000", "£10,000"], "answer": 2, "explain": "Taxpayer must be left with at least £5,000. Memory: 1k to recover, 5k left over."}, {"topic": "ICAEW ethics", "q": "Which is NOT one of the five ICAEW fundamental principles?", "choices": ["Integrity", "Objectivity", "Profitability", "Confidentiality"], "answer": 2, "explain": "Profitability is not a fundamental ethical principle."}, {"topic": "ICAEW ethics", "q": "Integrity means:", "choices": ["Being honest and straightforward", "Being profitable", "Being independent in every situation", "Following client instructions only"], "answer": 0, "explain": "Integrity = honest and straightforward."}, {"topic": "ICAEW ethics", "q": "Objectivity means:", "choices": ["Keeping information secret", "Avoiding bias or undue influence", "Maintaining technical knowledge", "Marketing the firm"], "answer": 1, "explain": "Objectivity = unbiased judgement."}, {"topic": "ICAEW ethics", "q": "Professional competence and due care means:", "choices": ["Never making mistakes", "Maintaining knowledge and skill and acting diligently", "Only working for large clients", "Avoiding all judgement"], "answer": 1, "explain": "Professional competence and due care = keep skills up to date and act diligently."}, {"topic": "Ethical threats", "q": "Pressure or threats from a client create which threat?", "choices": ["Self-interest", "Self-review", "Familiarity", "Intimidation"], "answer": 3, "explain": "Threats or pressure = intimidation threat."}, {"topic": "Ethical threats", "q": "Reviewing your own previous work creates which threat?", "choices": ["Self-review", "Advocacy", "Familiarity", "Confidentiality"], "answer": 0, "explain": "Self-review = marking your own homework."}, {"topic": "Ethical threats", "q": "Being too close to a client creates which threat?", "choices": ["Familiarity", "Advocacy", "Intimidation", "Professional behaviour"], "answer": 0, "explain": "Familiarity threat = relationship too close, reducing scepticism."}, {"topic": "Ethical conflicts", "q": "When resolving ethical conflicts, which should NOT drive the decision?", "choices": ["Relevant facts", "Internal procedures", "Alternative actions", "Commercial relationship with the client"], "answer": 3, "explain": "Commercial relationship should not override ethical principles."}, {"topic": "AML", "q": "Which is a money laundering offence?", "choices": ["Tax avoidance", "Innocent error", "Tipping off", "Claiming a valid relief"], "answer": 2, "explain": "Tipping off is a money laundering offence."}, {"topic": "AML", "q": "Tax avoidance is:", "choices": ["Illegal evasion", "Legal tax planning", "Always money laundering", "A penalty assessment"], "answer": 1, "explain": "Tax avoidance is legal tax planning. Tax evasion is illegal."}, {"topic": "AML", "q": "Tax evasion is:", "choices": ["Legal tax planning", "Illegal behaviour to reduce tax", "A direct tax", "An HMRC enquiry"], "answer": 1, "explain": "Tax evasion is illegal, such as hiding income or making false claims."}];
+let quiz = [];
+let current = 0;
+let score = 0;
+let streak = 0;
+let answered = false;
+let weak = JSON.parse(localStorage.getItem("weakKahoot") || "[]");
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function setupTopics() {
+  const topics = ["All topics", ...new Set(allQuestions.map(q => q.topic))];
+  const sel = document.getElementById("topicSelect");
+  sel.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join("");
+}
+
+function selectedQuestions() {
+  const t = document.getElementById("topicSelect").value;
+  return t === "All topics" ? [...allQuestions] : allQuestions.filter(q => q.topic === t);
+}
+
+function startQuiz(mode) {
+  let pool = selectedQuestions();
+  if (mode === "weak") {
+    const weakSet = new Set(weak);
+    pool = pool.filter(q => weakSet.has(q.q));
+    if (pool.length === 0) {
+      alert("No weak cards yet. Get some wrong first, or do Quick 10.");
+      return;
+    }
+  }
+  quiz = shuffle(pool);
+  if (mode === "quick") quiz = quiz.slice(0, 10);
+  current = 0; score = 0; streak = 0;
+  document.getElementById("start").style.display = "none";
+  document.getElementById("result").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  const q = quiz[current];
+  document.getElementById("topic").textContent = q.topic;
+  document.getElementById("question").textContent = q.q;
+  document.getElementById("count").textContent = `${current+1}/${quiz.length}`;
+  document.getElementById("score").textContent = `Score: ${score}`;
+  document.getElementById("streak").textContent = `Streak: ${streak}`;
+  document.getElementById("bar").style.width = `${(current/quiz.length)*100}%`;
+  document.getElementById("feedback").style.display = "none";
+
+  let choices = q.choices.map((text, i) => ({text, original:i}));
+  choices = shuffle(choices);
+  const answers = document.getElementById("answers");
+  answers.innerHTML = "";
+  choices.forEach(c => {
+    const div = document.createElement("button");
+    div.className = "answer";
+    div.textContent = c.text;
+    div.onclick = () => choose(c.original, div);
+    answers.appendChild(div);
+  });
+}
+
+function choose(choice, btn) {
+  if (answered) return;
+  answered = true;
+  const q = quiz[current];
+  const buttons = [...document.querySelectorAll(".answer")];
+  buttons.forEach(b => {
+    const text = b.textContent;
+    const originalIndex = q.choices.indexOf(text);
+    if (originalIndex === q.answer) b.classList.add("correct");
+    else b.classList.add("wrong");
+  });
+
+  const correct = choice === q.answer;
+  if (correct) {
+    score++;
+    streak++;
+    weak = weak.filter(x => x !== q.q);
+    document.getElementById("fbTitle").textContent = "Correct";
+  } else {
+    streak = 0;
+    if (!weak.includes(q.q)) weak.push(q.q);
+    document.getElementById("fbTitle").textContent = "Wrong";
+  }
+  localStorage.setItem("weakKahoot", JSON.stringify(weak));
+  document.getElementById("fbText").textContent = q.explain;
+  document.getElementById("score").textContent = `Score: ${score}`;
+  document.getElementById("streak").textContent = `Streak: ${streak}`;
+  document.getElementById("feedback").style.display = "block";
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= quiz.length) return finish();
+  renderQuestion();
+}
+
+function finish() {
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("result").style.display = "block";
+  document.getElementById("bar").style.width = "100%";
+  const pct = Math.round((score/quiz.length)*100);
+  document.getElementById("finalScore").textContent = `You scored ${score}/${quiz.length} (${pct}%).`;
+  let advice = "Good attempt. Drill the weak cards and repeat.";
+  if (pct >= 90) advice = "Strong. Now repeat until you can get 100% twice in a row.";
+  if (pct === 100) advice = "Perfect. This topic is now in maintenance mode.";
+  document.getElementById("advice").textContent = advice;
+}
+
+function home() {
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("result").style.display = "none";
+  document.getElementById("start").style.display = "block";
+}
+
+function resetStats() {
+  weak = [];
+  localStorage.removeItem("weakKahoot");
+  alert("Stats reset.");
+}
+
+setupTopics();
+</script>
+</body>
+</html>
